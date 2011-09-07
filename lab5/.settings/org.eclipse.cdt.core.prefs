@@ -1,3 +1,0 @@
-#Mon Dec 06 17:24:09 BRST 2010
-eclipse.preferences.version=1
-environment/project/cdt.managedbuild.config.gnu.exe.debug.1030840332=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?>\n<environment append\="true" appendContributed\="true">\n<variable delimiter\="\:" name\="PATH" operation\="append" value\="&quot;/home/specg10-2/ra107888/libevent/lib&quot;"/>\n</environment>\n
