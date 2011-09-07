@@ -1,0 +1,81 @@
+\documentclass[12pt,a4paper]{article}
+ % document definitions
+\input{settings}
+\begin{document}
+% include cover
+
+\input{capa}
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introdução}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Esta tarefa pede que o cliente da tarefa 2 seja modificado para não usar mais fork() e sim select(). 
+
+Além disso, o servidor deve ser transformado em um daemon.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Objetivos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Verificar que um cliente multiplexado usando select() é tão bom quanto um que use vários processos para cuidar de cada tarefa.
+
+Transformar o servidor em um daemon.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Desenvolvimento}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Usando o tutorial do Beej \cite{beej}, aprendemos sobre o funcionamento do método select(). Fizemos as modificações necessárias para que o cliente deixasse de usar fork() e fosse só um processo que multiplexava os canais de comunicação.
+
+No servidor, usando a documentação encontrada na internet, conseguimos fazer com que o servidor fosse um daemon. Ou seja, continuasse rodando mesmo que o usuário fizesse logout. Para isso vários passos devem ser seguidos. Entre eles, desacoplar de terminais, escrever em log, fazer fork e matar o processo pai, etc. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dificuldades}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+A principal dificuldade desta tarefa foi aprender o funcionamento do método select(). Graças ao tutorial do Beej \cite{beej} conseguimos entender o funcionamento e implementar o que foi pedido.
+
+Além disso, outro problema que acontece é quanto a bufferização. É necessário que usemos a função setvbuf() para modificar o modo de buffer.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experimentos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Os programas foram testados com uma máquina em casa e outra do IC-3. 
+O RTT medido entre as máquinas foi de 150 milisegundos. 
+
+Primeiramente repetimos os testes da tarefa 2 neste ambiente, para garantir que o RTT fosse o mesmo. 
+
+Usando o cliente e o servidor da tarefa 2, com um processo que envia e outro que recebe os dados, obtivemos um resultado de 7.519926 segundos para enviar o arquivo \/etc\/services. 
+
+Repetimos o experimento usando os programas da tarefa 4. Com o servidor daemon e o cliente usando select obtivemos um tempo de 7.377163 segundos. 
+
+Com isso verificamos que usando select o desempenho é tão bom quanto usando multiplos processos. Na verdade o resultado foi até um pouco melhor.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusões}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Notamos que o desempenho de um cliente usando select chega a ser mais rápido que um que usa multiplos processos. A pequena diferença de tempo pode ser devida ao servidor ser um daemon, e por isso estar desaclopado de terminais. 
+
+Aprendemos que select() é uma solução viável para multiplexar comunicação de um servidor com vários clientes ou até mesmo para um simples cliente de echo.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliografia}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Anexos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Os códigos dos programas seguem anexos.
+
+\end{document}
+
+

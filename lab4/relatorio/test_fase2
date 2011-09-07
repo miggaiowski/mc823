@@ -1,0 +1,17 @@
+[gumasa@l3818-19 fase2]$ ./server_echo 
+Servidor: Conectado com 127.0.0.1
+Cliente fechou a conexão.
+  Numero de linhas recebidas: 13921
+  Total de caracteres recebidos: 677959
+
+Gui:fase2 Gui$ ./client 127.0.0.1 < /etc/services > t2
+Received: Conectado, envie uma mensagem que eu devolvo.
+Numero de linhas enviadas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Tempo total de transferencia: 4.608163 s
+Numero de linhas recebidas: 13921
+Total de caracteres recebidos: 677959
+Gui:fase2 Gui$ diff /etc/services t2
+Gui:fase2 Gui$ wc /etc/services 
+   13921   68850  677959 /etc/services

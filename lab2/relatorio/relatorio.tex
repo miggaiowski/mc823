@@ -1,0 +1,237 @@
+\documentclass[12pt,a4paper]{article}
+ % document definitions
+\input{settings}
+\begin{document}
+% include cover
+
+\input{capa}
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introdução}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Usando os programas do experimento anterior, o enunciado pedia para a
+primeira fase que os comandos de \textit{send} e \textit{recv} fossem
+trocados por \textit{fputs} e \textit{fgets}, respectivamente. Para a
+segunda fase, deveríamos notar que a demora no envio dos arquivos era
+devida ao RTT e modificar o cliente para que fosse dividido em dois
+processos e não ficasse esperando resposta do servidor para continuar
+enviando dados.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Objetivos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Utilizar descritores de arquivos para envio e recebimento de dados e
+separar o cliente em dois processos (pai e filho), dividindo também o
+trabalho de enviar e recber dados, para maximizar o uso de banda.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Desenvolvimento}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+A primeira fase do projeto foi de fácil implementação. Primeiro
+precisamos usar a função \textit{fdopen} para conseguir descritores de
+arquivos de leitura e escrita ligados ao socket conectado. Com isso
+pudemos substituir as funções \textit{send} e \textit{recv} por
+\textit{fputs} e \textit{fputs}. Obviamente alguns ajustes tiveram que
+ser feitos. Um exemplo disso é a detecção que o cliente desconectou-se
+por parte do servidor. Tivemos que usar a saída da função
+\textit{fgets}, que quando é igual a \textit{NULL} significa que o
+cliente fechou a conexão.
+
+A segunda parte foi mais trabalhosa. Precisamos primeiramente entender
+como que poderíamos separar o cliente em dois. Como o enunciado
+sugeria, fizemos com que o processo filho ficasse encarregado de
+enviar as linhas da entrada padrão para o descritor de escrita e que o
+processo pai fosse responsável por receber as linhas retornadas pelo
+servidor pelo descritor de leitura.
+
+Obviamente o processo pai deve esperar o processo filho terminar para
+que imprima suas estatísticas e retorne, já que ele depende do
+processo filho ter enviado tudo e o servidor enviado de volta. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dificuldades}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Já que o processo filho não compartilha variáveis com o processo pai,
+e somente os descritores abertos, não temos como fazer com que o pai
+saiba quantas linhas o filho enviou para o servidor. Assim, tivemos
+que fazer com que o filho imprima suas estatísticas de envio e o
+processo pai imprima as de recebimento e o tempo total. Isto nos tomou
+um certo tempo para perceber que seria a solução mais simples.
+
+Deve-se fazer um half-close na conexão pelo filho. Ou seja, o
+descritor de escrita é fechado, mas o de leitura continua aberto. Se o
+filho fechar ambos os descritores o pai não consegue receber as
+mensagens do servidor, já que a conexão foi fechada.
+
+Além disso, o filho deve terminar com \textit{\_exit(0)} e não
+\textit{exit(0)}, pois esta última fecha todos descritores e sockets
+abertos no processo, o que não queremos.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experimentos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Para testar os programas, usamos uma máquina no Canadá (Montreal) e outra no IC-3
+(nossos notebooks). Como as redes são protegidas por firewall, tivemos
+que usar túneis SSH para ligar o cliente ao servidor. 
+
+O tempo de RTT entre as máquinas que colocamos os processos servidor e
+cliente foi de 175 ms, medidos com ping, como pode ser conferido abaixo.
+
+{\scriptsize 
+\begin{verbatim}
+[gumasa@l4712-19 ~]$ ifconfig eth0 | grep addr
+eth0      Link encap:Ethernet  HWaddr 00:30:48:7E:B2:2C  
+          inet addr:132.207.12.51  Bcast:132.207.12.255  Mask:255.255.255.0
+          inet6 addr: fe80::230:48ff:fe7e:b22c/64 Scope:Link
+[gumasa@l4712-19 ~]$ ping bugu.lab.ic.unicamp.br
+PING bugu.lab.ic.unicamp.br (143.106.16.165) 56(84) bytes of data.
+64 bytes from bugu.lab.ic.unicamp.br (143.106.16.165): icmp_seq=1 ttl=45 time=175 ms
+64 bytes from bugu.lab.ic.unicamp.br (143.106.16.165): icmp_seq=2 ttl=45 time=175 ms
+64 bytes from bugu.lab.ic.unicamp.br (143.106.16.165): icmp_seq=3 ttl=45 time=174 ms
+64 bytes from bugu.lab.ic.unicamp.br (143.106.16.165): icmp_seq=4 ttl=45 time=175 ms
+64 bytes from bugu.lab.ic.unicamp.br (143.106.16.165): icmp_seq=5 ttl=45 time=175 ms
+^C
+--- bugu.lab.ic.unicamp.br ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 8855ms
+rtt min/avg/max/mdev = 174.872/175.333/175.850/0.616 ms
+\end{verbatim}}
+
+Sabendo que nosso cliente da fase 1 manda uma linha por vez e espera a
+resposta antes de enviar a próxima, podemos fazer uma previsão de
+tempo para mandar o arquivo \textit{/etc/services}. Usando \textit{wc}
+nós conseguimos a informação sobre a quantidade de linhas do arquivo.
+
+\begin{verbatim}
+$ wc -l /etc/services 
+   13921 /etc/services
+\end{verbatim}
+
+Como cada linha deve levar pelo menos um RTT para ser enviada e
+recebida pelo cliente, podemos fazer uma previsão do tempo mínimo usando a fórmula $NL
+* RTT $, onde $NL$ é o número de linhas e $RTT$ é o round trip time.
+
+$13921 * 175 = 2436175 ms = 2436 s = 40.5 min$
+
+Executando o teste da fase 1, do lado do cliente:
+
+\begin{verbatim}
+$ ./client localhost < /etc/services > s1
+Received: Conectado, envie uma mensagem que eu devolvo.
+Tempo total de transferencia: 2501.847383 s
+Numero de linhas enviadas: 13921
+Numero de linhas recebidas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Total de caracteres recebidos: 677959
+caesar:fase1 miguelgaiowski$ diff /etc/services s1
+caesar:fase1 miguelgaiowski$ wc /etc/services 
+   13921   68850  677959 /etc/services
+\end{verbatim}
+
+E do lado do servidor: 
+
+\begin{verbatim}
+[gumasa@l4712-19 fase1]$ ./server_echo 
+Servidor: Conectado com 127.0.0.1
+Cliente fechou a conexão.
+  Numero de linhas recebidas: 13921
+  Total de caracteres recebidos: 677959
+\end{verbatim}
+
+O tempo obtido foi de 2500 segundos. Um erro de apenas 2.5\% da nossa
+estimativa. É claro que já esperávamos um tempo um pouco maior, já que
+estamos usando um túnel SSH e cada mensagem deve ser cifrada. 
+
+Já na fase 2 o cliente não fica esperando resposta para enviar a
+próxima linha para o servidor. Assim, o tempo não depende mais do RTT,
+e sim da banda. Como vamos usar todo o potencial da banda, sem ficar
+esperando respostas, esperamos que seja extremamente mais rápido para
+enviar e receber o arquivo. Executando o teste, primeiro do lado do cliente:
+
+\begin{verbatim}
+Gui:fase2 Gui$ ./client 127.0.0.1 < /etc/services > t2
+Received: Conectado, envie uma mensagem que eu devolvo.
+Numero de linhas enviadas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Tempo total de transferencia: 4.608163 s
+Numero de linhas recebidas: 13921
+Total de caracteres recebidos: 677959
+Gui:fase2 Gui$ diff /etc/services t2
+Gui:fase2 Gui$ wc /etc/services 
+   13921   68850  677959 /etc/services
+\end{verbatim}
+
+E do lado do servidor:
+
+\begin{verbatim}
+[gumasa@l3818-19 fase2]$ ./server_echo 
+Servidor: Conectado com 127.0.0.1
+Cliente fechou a conexão.
+  Numero de linhas recebidas: 13921
+  Total de caracteres recebidos: 677959
+\end{verbatim}
+
+Nota-se que o ganho de performance é incrível. Mais de 500 vezes mais
+rápido.
+
+Testamos também os programas da experimento anterior, para fazer um
+comparativo.
+
+\begin{verbatim}
+caesar:lab1 miguelgaiowski$ ./client localhost < /etc/services > t1
+Received: Conectado, envie uma mensagem que eu devolvo.
+Tempo total de transferencia: 2507.296164 s
+Numero de linhas enviadas: 13921
+Numero de linhas recebidas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Total de caracteres recebidos: 677959
+\end{verbatim}
+
+Com isso, notamos que usar \textit{fgets} e \textit{fputs} é pouca
+coisa mais eficiente que \textit{send} e \textit{recv}.
+
+Segue uma tabela comparativa:
+
+\begin{tabular}{|l|r|r|r|}
+\hline
+Programa & Lab 1 & Lab 2 - Fase 1 & Lab 2 - Fase 2  \\ \hline
+Tempo (s) & 2507 & 2501 & 4.6 \\ \hline
+\end{tabular}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusões}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Com os testes efetuados pudemos notar claramente a dependência no RTT
+do cliente simples que enviava uma linha somente depois de ter a
+resposta da anterior. 
+
+Notamos que uma melhoria de design tão pequena quanto essa pode trazer
+uma melhora de performance extremamente notável. No nosso caso, da
+ordem de 500 vezes mais rápido.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliografia}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nocite{beej}
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Anexos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Os códigos dos programas seguem anexos.
+
+\end{document}
+
+

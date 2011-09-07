@@ -1,0 +1,50 @@
+% packages
+\usepackage[brazilian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[usenames]{color}
+\usepackage{lscape}
+\usepackage{latexsym}
+\usepackage{amscd}
+\usepackage{amsfonts}
+\usepackage{epsf}
+\usepackage{times}
+\usepackage{multicol}
+\usepackage[pdftex]{graphicx}
+%\usepackage[makeidx]
+\usepackage{multirow}
+%\usepackage{thumbpdf}
+\usepackage{float}
+\usepackage{paralist}
+\usepackage{alltt}
+\usepackage{mdwlist}
+%\usepackage{color}
+%\usepackage{rotating}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{amssymb}
+
+% toc
+\setcounter{tocdepth}{2}
+\setlength{\textwidth}{40pc}
+\setlength{\textheight}{56pc}
+\setlength{\parskip}{.3pc}
+\setlength{\topmargin}{-17mm}
+\setlength{\oddsidemargin}{1mm}
+\setlength{\evensidemargin}{1mm}
+\linespread{1.5}
+
+% float settings
+\floatstyle{boxed}
+\newfloat{program}{htp}{lop}
+\floatname{program}{Programa}
+
+% page formatting
+\pagestyle{plain}
+
+% rename the chapter name
+% http://www.tex.ac.uk/cgi-bin/texfaq2html?label=fixnam
+\addto\captionsbrazilian{%
+  \renewcommand{\chaptername}%
+    {Seção}%
+}

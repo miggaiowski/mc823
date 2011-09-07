@@ -1,0 +1,196 @@
+\documentclass[12pt,a4paper]{article}
+ % document definitions
+\input{settings}
+\begin{document}
+% include cover
+
+\input{capa}
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introdução}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Esta primeira tarefa pedia que um servidor de eco fosse implementado
+usando a linguagem C. Além disso, um cliente também deveria ser feito
+com o intuito de se conectar ao servidor e enviar mensagens e receber
+o que o servidor manda de volta.
+
+Além de um servidor simples, que só aceita uma conexão por vez,
+deveríamos também implementar um que funcionasse de forma concorrente,
+aceitando várias conexões ao mesmo tempo e fazendo o tratamento adequado.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Objetivos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Depois dos servidores e do cliente prontos, deveríamos poder fazer
+testes simples, como enviar e receber de volta de a mesma mensagem,
+como também fazer o \textit{pipe} de arquivos para a entrada e saída
+do cliente e analisar o tempo levado para a transmissão dos dados. Com
+isso também conseguiríamos averiguar o funcionamento correto dos dois
+lados da conexão, se o cliente realmente recebe de volta exatamente o
+que mandou.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Desenvolvimento}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Protótipos do cliente e servidor foram disponibilizados para que
+modificassemos. A parte do cliente foi relativamente fácil, bastando
+pegar a conexão fazer a entrada e saída de dados. Os dados da entrada
+padrão foram jogados no socket para o servidor, e após fechar a
+conexão alguns dados estatísticos da 'conversa' entre o cliente e o
+servidor são impressos na saída de erro. 
+
+Para o servidor de eco simples, que só aceita uma conexão por vez,
+tivemos que pegar o protótipo e fazer com que a conexão não fosse
+fechada após receber a primeira mensagem, como estava implementado. Ao
+invés disso a conexão fica aberta até que o cliente a feche (número de
+bytes recebidos seja zero). Além disso, após o fechamento da conexão o
+servidor deve entrar a em loop e aguardar novos pedidos de conexão. 
+
+Após receber cada mensagem, o servidor envia exatamente a mesma coisa
+para o cliente. E quando o cliente fecha a conexão, o servidor joga na
+saída de erro algumas informações sobre a quantidade de dados enviada
+e recebida.
+
+Com o servidor concorrente, após entender como funciona o processor de
+fork para que o processo filho cuide de cada conexão recebida enquanto
+o processo pai fica aguardando novas conexões, o trabalho foi
+basicamente o mesmo, de implementar as funcionalidades básicas
+requeridas, de fazer eco dos dados recebidos e imprimir algumas
+informações ao final. O protótipo usado foi o fornecido pelo Beej \cite{beej}.
+
+Primeiros testes foram feitos na mesma máquina, com o servidor ouvindo
+numa porta e o cliente se conectando nessa porta em localhost. Algumas
+mensagens foram enviadas e recebidas, e depois o teste foi feito
+usando arquivos para entrada e saída, permitindo comparar com diff e
+fazer contagem de caracteres com wc.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dificuldades}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Como o enunciado pedia que testes fossem feitos em sub-redes
+distintas, colocamos o servidor rodando na máquina bugu, do IC-3, e o
+cliente rodando numa máquina conectada a rede do LAS. 
+A porta 3401, que estava designada nos protótipos não pode ser
+acessada de uma rede fora da do IC-3, e por isso acabamos fazendo um
+túnel SSH e jogando os dados no túnel, que chegavam até o servidor e
+voltavam. Isso acabou fazendo com que os dados levassem mais tempo
+para ir e voltar, devido ao overhead de cifragem e de encapsular os pacotes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusões}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Pudemos aprender sobre o funcionamento de sockets e de conexões
+concorrentes. O mais interessante foi ver quão simples um servidor de
+eco concorrente pode ser, e que mesmo assim problemas básicos
+acontecem e um entendimento da estrutura da rede, com suas camadas e
+estruturas de programação, deve ser obtido para que o trabalho possa
+ser concluído.
+
+O resultado do teste de mandar o arquivo services para o servidor pode
+ser visto abaixo:
+
+\begin{verbatim}
+$ ./client localhost < /etc/services > teste
+Received: Conectado, envie uma mensagem que eu devolvo.
+Tempo total de transferencia: 6.858977 s
+Numero de linhas enviadas: 13921
+Numero de linhas recebidas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Total de caracteres recebidos: 677959
+$ wc /etc/services 
+13921   68850  677959 /etc/services
+$
+\end{verbatim}
+
+E o que o lado do servidor mostra:
+
+\begin{verbatim}
+[ra076116@bugu lab1]$ ./server_echo 
+Servidor: Conectado com 127.0.0.1
+Cliente fechou a conexão.
+  Numero de linhas recebidas: 13921
+  Total de caracteres recebidos: 677959
+\end{verbatim}
+
+Mostramos assim que o servidor de eco simples, para só um cliente por
+vez funciona como esperado. 
+
+Para mostrar o funcionamento do servidor concorrente, fizemos dois
+túneis. Ambos direcionados a porta 9000 do servidor, mas um saindo da
+porta 9000 e outro da porta 9001 da máquina onde estava o cliente.
+
+Um dos clientes mostrou a saída:
+
+\begin{verbatim}
+$ ./client localhost < /etc/services > teste
+Received: Conectado, envie uma mensagem que eu devolvo.
+Tempo total de transferencia: 7.096509 s
+Numero de linhas enviadas: 13921
+Numero de linhas recebidas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Total de caracteres recebidos: 677959
+caesar:lab1 miguelgaiowski$ diff teste /etc/services 
+$ wc /etc/services 
+13921   68850  677959 /etc/services
+$
+\end{verbatim}
+
+E o outro: 
+
+\begin{verbatim}
+$ ./client localhost < /etc/services > teste2
+Received: Conectado, envie uma mensagem que eu devolvo.
+Tempo total de transferencia: 6.858977 s
+Numero de linhas enviadas: 13921
+Numero de linhas recebidas: 13921
+Numero de caracteres na maior linha: 118
+Total de caracteres enviados: 677959
+Total de caracteres recebidos: 677959
+caesar:lab1 miguelgaiowski$ diff teste2 /etc/services 
+$ wc /etc/services 
+13921   68850  677959 /etc/services
+$
+\end{verbatim}
+
+O servidor reportou:
+
+\begin{verbatim}
+[ra076116@bugu lab1]$ ./serverb 
+Servidor: Conectado com 127.0.0.1
+Servidor: Conectado com 127.0.0.1
+Cliente fechou a conexão.
+ Numero de linhas recebidas: 13921
+ Total de caracteres recebidos: 677959
+Cliente fechou a conexão.
+ Numero de linhas recebidas: 13921
+ Total de caracteres recebidos: 677959
+\end{verbatim}
+
+Podemos notar que o envio do mesmo arquivo para o servidor simples
+demorou mais do que mandar ao mesmo tempo duas vezes para o servidor
+concorrente. Concluímos que algum tráfego na rede inesperado possa ter
+causado a demora adicional.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliografia}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Anexos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Os códigos dos programas seguem anexos.
+
+\end{document}
+
+

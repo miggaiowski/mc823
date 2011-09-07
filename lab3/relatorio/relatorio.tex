@@ -1,0 +1,87 @@
+\documentclass[12pt,a4paper]{article}
+ % document definitions
+\input{settings}
+\begin{document}
+% include cover
+
+\input{capa}
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introdução}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Enquanto as outras tarefas tratavam de conexões TCP, esta trata de UDP.
+Faremos um servidor de eco, e um cliente para interagir com ele. 
+Além disso, usaremos diferentes métodos para utilizar UDP com a linguagem C.
+Isto é, usaremos as funções send(), recv(), sendto(), recvfrom() e connect().
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Objetivos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Implementar um cliente e um servidor de eco usando datagramas. Verificar a falta de confiabilidade de UDP.
+Testar as diferentes combinações de métodos para a implementação.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Desenvolvimento}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Implementamos um cliente em UDP. Basicamente ele lê linhas da entrada padrão e as transmite para o servidor. Após cada linha ele espera um resposta do servidor para enviar a próxima. 
+
+O servidor recebe as linhas e as envia para o cliente. 
+
+Vale notar que fizemos duas implementações diferentes para o cliente e para o servidor. Uma delas usa o par sendto e recvfrom. A outra usa send e recv após um connect. Sabemos que o termo connect não se aplica a UDP, sendo uma nomenclatura infeliz da biblioteca de C. Ainda assim, ela simula uma conexão após o primeiro datagrama ser recebido e permite que se possa continuar recebendo sem falar de quem, basta fazer uma conexão virtual antes.
+
+No servidor, caso esteja recebendo dados de um cliente e passe mais de um segundo sem receber nada, um sinal de alarme é emitido e o servidor trata imprimindo as estatísticas obtidas até o momento e reiniciando a contagem. Isso simula que um novo cliente será o próximo a enviar dados. Isso pode acontecer quando um cliente deixa de enviar um pacote final com 0 bytes indicando fim de troca de dados entre eles. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dificuldades}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Tivemos algumas dificuldades neste laboratório para fazer o tratamento de sinais de alarme, já que nunca tínhamos feito algo parecido. Google foi nosso parceiro retornando exemplos de uso.
+
+Tivemos problemas também usando um cliente com sendto/recvfrom e um servidor com connect ao mesmo tempo. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experimentos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Testamos os programas em máquinas do IC-3. O tempo de transmissão do arquivo /etc/services variou conforme os diferente métodos usados. Já que o tempo foi muito pequeno, geramos um arquivo 10 vezes maior, fazendo concatenando o /etc/services nele mesmo. O arquivo que geramos tinha 106345 linhas. 
+
+Usando as funções sendto()/recvfrom() tanto no cliente quanto no servidor, obtivemos uma medição de 59.356 segundos para envio do arquivo /etc/services entre duas máquinas do IC-3.
+
+Com o cliente usando connect() e depois send()/recv(), o tempo foi de 58.812 segundos. Já com os papéis trocados, ou seja, servidor fazendo connect(), observamos um tempo de 59.311 segundos. Uma mudança praticamente desprezavel.
+
+Fizemos um flood.c para testar a perda de pacotes. Deixamos vários processos fazendo cálculos inúteis na mesma máquina do servidor. No cliente, retiramos a espera pela resposta antes de envio da próxima linha. Além disso, omitimos todo tipo de output, para que enviasse todas as linhas o mais rápido possível.
+
+O servidor não conseguiu receber todos os pacotes tão rápido quanto o cliente enviava e, já que não há reenvio, acabou perdendo vários pacotes. Ele recebeu apenas 77605 linhas, das 106345. Ou seja, apenas 72,9\% dos pacotes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusões}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Notamos que UDP não é confiável e é tão simples de ser usado
+quanto TCP. Podemos concluir, no entanto, que UDP pode ser muito
+bom para certas aplicações, tais como streaming de áudio e vídeo,
+graças a sua versatilidade e habilidade de manter uma velocidade
+constante de envio e outra de recebimento, bastando tratar a perda
+de pacotes. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliografia}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nocite{beej}
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Anexos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Os códigos dos programas seguem anexos.
+
+\end{document}
+
+
